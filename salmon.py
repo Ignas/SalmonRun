@@ -148,6 +148,7 @@ class Game(object):
         pyglet.clock.schedule_interval(self.camera.update, self.update_freq)
 
         self.tiles = {}
+        self.missing_tile = self.load_tile_sprite('no-tile.png')
         self.load_time = {}
         self.state = self.LOADING
         self.missing_tiles = [(x, y) for x in range(self.MAP_W)
@@ -170,6 +171,11 @@ class Game(object):
             for y in range(self.tile_y - self.TILE_PADDING, self.tile_y + self.TILE_PADDING + 1):
                 if (x, y) in self.tiles:
                     tiles.append(self.tiles[x, y])
+                else:
+                    no_tile = pyglet.sprite.Sprite(self.missing_tile.image)
+                    no_tile.x = TILE_SIZE * x
+                    no_tile.y = -TILE_SIZE * y
+                    tiles.append(no_tile)
         return tiles
 
     def move_left(self):
@@ -198,18 +204,19 @@ class Game(object):
                 tile.opacity = min(255, int((time.time() - tile.loaded) * 255))
             tile.draw()
 
-    def load_tile(self, x, y):
-        filename = 'tile-%03d-%03d.png' % (y, x)
-        mu = get_mem_usage()
+    def load_tile_sprite(self, filename):
         image = load_image(filename)
         image.anchor_x = image.anchor_y = TILE_SIZE / 2
-        dmem = get_mem_usage() - mu
-        sprite = self.tiles[x, y] = pyglet.sprite.Sprite(image)
+        return pyglet.sprite.Sprite(image)
+
+    def load_tile(self, x, y):
+        filename = 'tile-%03d-%03d.png' % (y, x)
+        sprite = self.load_tile_sprite(filename)
         sprite.loaded = time.time()
         sprite.opacity = 0
         sprite.x = TILE_SIZE * x
         sprite.y = -TILE_SIZE * y
-        # print "Loaded:", filename, dmem, get_mem_usage() - mu - dmem, get_mem_usage() / 1024 / 1024
+        self.tiles[x, y] = sprite
 
 
 class Main(pyglet.window.Window):
