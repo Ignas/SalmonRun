@@ -211,6 +211,7 @@ class Game(object):
         nemunas = offset(nemunas, -512 + 95, +512 + 1024 + 42)
         self.nemunas = nemunas
 
+        # Refactor us please, we feel duplicated
         s1 = tree.xpath("//*[@id='sesupe']/@d")[0]
         sesupe = d_to_coords(s1)
         sesupe = multiply(reversed(sesupe), 6.0, 6.0)
