@@ -204,8 +204,8 @@ class Game(object):
         t2 = tree.xpath("//*[@id='Nemunas2']/../@transform")[0]
         nemunas = d_to_coords(n1, *translate_offset(t1))
         nemunas += d_to_coords(n2, *translate_offset(t2))
-        nemunas = multiply(reversed(nemunas), 16471 / 2700., 10514 / 1675.)
-        nemunas = offset(nemunas, -512, +512+1024) # dunno why!!!
+        nemunas = multiply(reversed(nemunas), 6.0, 6.0)
+        nemunas = offset(nemunas, -512 + 98, +512 + 1024 + 44) # dunno why!!!
         self.nemunas = nemunas
         # import pdb; pdb.set_trace()
         # return
