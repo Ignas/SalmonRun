@@ -165,10 +165,12 @@ class Game(object):
         from lxml import etree
         tree = etree.parse(baseinas)
 
-        def d_to_coords(d):
+        def d_to_coords(d, dx=0, dy=0):
             coords = []
             d = d.split(' ')
             [current_x, current_y] = map(float, d[1].split(","))
+            current_x += dx
+            current_y += dy
             coords.append((current_x, current_y))
             coordinates = d[3:]
             for n, coord in enumerate(coordinates):
@@ -179,19 +181,32 @@ class Game(object):
                     coords.append((current_x, current_y))
             return coords
 
-        def multiply(coords, k):
-            return [(x * k, y * k)
+        def multiply(coords, k, l=None):
+            if l is None:
+                l = k
+            return [(x * k, y * l)
                     for (x, y) in coords]
 
         def offset(coords, offset_x=0, offset_y=0):
             return [(x + offset_x, y + offset_y)
                     for (x, y) in coords]
 
+        def translate_offset(transform):
+            if transform.startswith('translate('):
+                dx, dy = map(float,
+                             transform.split('(')[1].split(')')[0].split(','))
+                return (dx, y)
+            return (0, 0)
+
         n1 = tree.xpath("//*[@id='Nemunas1']/@d")[0]
+        t1 = tree.xpath("//*[@id='Nemunas1']/../@transform")[0]
         n2 = tree.xpath("//*[@id='Nemunas2']/@d")[0]
-        nemunas = d_to_coords(n1) + d_to_coords(n2)
-        nemunas = multiply(reversed(nemunas), 6)
-        self.nemunas = offset(nemunas, 3 * 1024 + 188, 4 * 1024 + 188)
+        t2 = tree.xpath("//*[@id='Nemunas2']/../@transform")[0]
+        nemunas = d_to_coords(n1, *translate_offset(t1))
+        nemunas += d_to_coords(n2, *translate_offset(t2))
+        nemunas = multiply(reversed(nemunas), 16471 / 2700., 10514 / 1675.)
+        nemunas = offset(nemunas, -512, +512+1024) # dunno why!!!
+        self.nemunas = nemunas
         # import pdb; pdb.set_trace()
         # return
         # self.nemunas = []
