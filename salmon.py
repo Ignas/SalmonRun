@@ -176,13 +176,13 @@ class Game(object):
         self.map_x = max(0, self.map_x - 1024)
 
     def move_right(self):
-        self.map_x += 1024
+        self.map_x = min(1024 * (self.MAP_W - 1), self.map_x + 1024)
 
     def move_up(self):
         self.map_y = max(0, self.map_y - 1024)
 
     def move_down(self):
-        self.map_y += 1024
+        self.map_y = min(1024 * (self.MAP_H - 1), self.map_y + 1024)
 
     def draw(self):
         if self.missing_tiles:
