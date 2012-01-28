@@ -59,8 +59,10 @@ class Camera(object):
         self.game = game
         self.x = self.game.map_x
         self.y = self.game.map_y
+        self.zoom = self.game.zoom
         self.target_x = self.x
         self.target_y = self.y
+        self.target_zoom = self.zoom
         self.focus = None
         self.focus_timer = 0
 
@@ -115,8 +117,10 @@ class Camera(object):
     def update(self, dt):
         self.target_x = self.game.map_x
         self.target_y = self.game.map_y
+        self.target_zoom = self.game.zoom
         self.x = int(self.x - (self.x - self.target_x) * 0.1)
         self.y = int(self.y - (self.y - self.target_y) * 0.1)
+        self.zoom = self.zoom - (self.zoom - self.target_zoom) * 0.1
 
 
 class Level(object):
@@ -182,7 +186,7 @@ class Game(object):
         else:
             self.state = self.STARTED
         gl.glTranslatef(window.width / 2, window.height // 2, 0)
-        gl.glScalef(self.zoom, self.zoom, 1.0)
+        gl.glScalef(self.camera.zoom, self.camera.zoom, 1.0)
         gl.glTranslatef(-self.camera.x, self.camera.y, 0)
         for tile in self.drawable_tiles:
             tile.draw()
@@ -243,9 +247,9 @@ class Main(pyglet.window.Window):
         if symbol == key.F:
             self.set_fullscreen(not self.fullscreen)
         if symbol in [key.PLUS, key.EQUAL]:
-            self.game.zoom *= 1.1
+            self.game.zoom *= 1.5
         if symbol == key.MINUS:
-            self.game.zoom /= 1.1
+            self.game.zoom /= 1.5
         if symbol == key.N:
             self.new_game()
 
