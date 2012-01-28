@@ -149,26 +149,28 @@ class Game(object):
         self.missing_tiles = [(x, y) for x in range(self.MAP_W)
                                      for y in range(self.MAP_H)]
 
+
         self.nemunas = []
         current_x, current_y = 0, 0
         self.nemunas.append((current_x, current_y))
-        for coord in pyglet.resource.file('nemunas.txt').read().split(" "):
-            dx, dy = map(float, coord.split(","))
-            current_x += dx
-            current_y += dy
-            self.nemunas.append((current_x, current_y))
+        for n, coord in enumerate(pyglet.resource.file('nemunas.txt').read().split(" ")):
+            if n % 3 == 2:
+                dx, dy = map(float, coord.split(","))
+                current_x += dx
+                current_y += dy
+                self.nemunas.append((current_x, current_y))
 
-        self.nemunas = [(x * 3.00 + (3 * 1024 + 188), y * 2.97 + (4 * 1024 + 188))
+        self.nemunas = [(x * 6.00 + (3 * 1024 + 188), y * 6 + (4 * 1024 + 188))
                         for x, y in reversed(self.nemunas)]
 
-        # dot_image = load_image("dot.png")
-        # dot_image.anchor_x = dot_image.anchor_y = 8
+        dot_image = load_image("dot.png")
+        dot_image.anchor_x = dot_image.anchor_y = 8
         self.dots = []
-        # for x, y in self.nemunas:
-        #     sprite = pyglet.sprite.Sprite(dot_image)
-        #     self.dots.append(sprite)
-        #     sprite.x = 
-        #     sprite.y = 
+        for x, y in self.nemunas:
+            sprite = pyglet.sprite.Sprite(dot_image)
+            self.dots.append(sprite)
+            sprite.x = x
+            sprite.y = -y
 
     def update(self, dt):
         if self.state is self.STARTED and self.nemunas:
