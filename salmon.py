@@ -259,34 +259,10 @@ class Main(pyglet.window.Window):
             self.game.zoom *= 1.5
         if symbol == key.MINUS:
             self.game.zoom /= 1.5
-        if symbol == key.N:
-            self.new_game()
 
         # DEBUG/CHEAT CODES
         if not DEBUG_VERSION:
             return
-
-        if symbol == key.ASCIITILDE:
-            g = self.game
-            g.sea.level = max(g.sea.level + 10,
-                              g.current_level.height - self.height // 2)
-        if symbol == key.SLASH:
-            # Note: leaves update() methods running, which maybe ain't bad
-            # -- eradicating a dodo mid-flight won't leave the camera focus
-            # stuck on it then
-            for dodo in self.game.dodos[::2]:
-                dodo.sprite.visible = False
-            del self.game.dodos[::2]
-        if symbol == key.L:
-            if (self.game.current_level.next is not None and
-                self.game.current_level.next.next is not None):
-                self.game.next_level()
-        if symbol == key.G:
-            self.game.game_over()
-
-    def on_key_release(self, symbol, modifiers):
-        if symbol == key.SPACE:
-            self.game.dodopult.fire()
 
     def on_resize(self, width, height):
         if self.fps_display:
