@@ -211,24 +211,23 @@ class Game(object):
         nemunas = offset(nemunas, -512 + 95, +512 + 1024 + 42)
         self.nemunas = nemunas
 
-        #s1 = tree.xpath("//*[@id='sesupe']/@d")[0]
-        #sesupe = d_to_coords(s1)
-        #sesupe = multiply(reversed(sesupe), 6.0, 6.0)
-        #sesupe = offset(sesupe, -512 + 93, -304)
-        #self.nemunas = sesupe
-        # 
-        #jotija_onija = tree.xpath("//*[@id='sesupe']/@d")[0]
-        #jotija_onija = d_to_coords(jotija_onija)
-        #jotija_onija = multiply(reversed(jotija_onija), 6.0, 6.0)
-        #jotija_onija = offset(jotija_onija, -512 + 93, -304)
-        #self.nemunas += jotija_onija
-        # 
-        #onija = tree.xpath("//*[@id='sesupe']/@d")[0]
-        #onija = d_to_coords(onija)
-        #onija = multiply(reversed(onija), 6.0, 6.0)
-        #onija = offset(sesupe, -512 + 93, -304)
-        #self.nemunas += onija
+        s1 = tree.xpath("//*[@id='sesupe']/@d")[0]
+        sesupe = d_to_coords(s1)
+        sesupe = multiply(reversed(sesupe), 6.0, 6.0)
+        sesupe = offset(sesupe, -512 + 95, -304)
+        self.nemunas += sesupe
 
+        jotija_onija = tree.xpath("//*[@id='jotija-onija']/@d")[0]
+        jotija_onija = d_to_coords(jotija_onija)
+        jotija_onija = multiply(reversed(jotija_onija), 6.0, 6.0)
+        jotija_onija = offset(jotija_onija, -512 + 95, -304)
+        self.nemunas += jotija_onija
+
+        jotija = tree.xpath("//*[@id='jotija']/@d")[0]
+        jotija = d_to_coords(jotija)
+        jotija = multiply(reversed(jotija), 6.0, 6.0)
+        jotija = offset(jotija, -512 + 95, -304)
+        self.nemunas += jotija
 
         # import pdb; pdb.set_trace()
         # return
