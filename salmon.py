@@ -139,7 +139,7 @@ class Game(object):
     TILE_PADDING = 2
     STARTED = object()
     LOADING = object()
-    zoom = 0.4
+    zoom = 0.5
     update_freq = 1 / 60.
 
     def __init__(self):
@@ -153,6 +153,24 @@ class Game(object):
         self.state = self.LOADING
         self.missing_tiles = [(x, y) for x in range(self.MAP_W)
                                      for y in range(self.MAP_H)]
+
+        nemunas = []
+        current_x, current_y = 0, 0
+        nemunas.append((current_x, current_y))
+        for coord in pyglet.resource.file('nemunas.txt').read().split(" "):
+            dx, dy = map(float, coord.split(","))
+            current_x += dx
+            current_y += dy
+            nemunas.append((current_x, current_y))
+
+        dot_image = load_image("dot.png")
+        dot_image.anchor_x = dot_image.anchor_y = 8
+        self.dots = []
+        for x, y in nemunas:
+            sprite = pyglet.sprite.Sprite(dot_image)
+            self.dots.append(sprite)
+            sprite.x = x * 3.05 + (3 * 1024 + 188)
+            sprite.y = -y * 3.02 - (4 * 1024 + 188)
 
     @property
     def tile_x(self):
@@ -204,6 +222,9 @@ class Game(object):
             if tile.opacity < 255:
                 tile.opacity = min(255, int((time.time() - tile.loaded) * 255))
             tile.draw()
+
+        for dot in self.dots:
+            dot.draw()
 
     def load_tile_sprite(self, filename):
         image = load_image(filename)
