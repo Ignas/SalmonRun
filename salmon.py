@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import time
+import itertools
 import logging
 from threading import Thread, Lock
 from contextlib import contextmanager
@@ -32,6 +33,8 @@ def load_image(filename, **kw):
         setattr(img, k, v)
     return img
 
+def get_mem_usage():
+    return int(open('/proc/self/stat').read().split()[22])
 
 @contextmanager
 def gl_matrix():
@@ -58,24 +61,32 @@ class Camera(object):
 class Game(object):
 
     PADDING = 2
+    STARTED = object()
+    LOADING = object()
+    zoom = 1.0
 
     def __init__(self):
         self.x, self.y = 5, 5
         self.camera = Camera()
         self.tiles = {}
+        self.state = self.LOADING
+
+    @property
+    def drawable_tiles(self):
+        tiles = []
+        for x in range(self.x - self.PADDING, self.x + self.PADDING):
+            for y in range(self.y - self.PADDING, self.y + self.PADDING):
+                tiles.append(self.tiles[x, y])
+        return tiles
 
     @property
     def missing_tiles(self):
-        for x in range():
-            pass
-
-    @property
-    def extra_tiles(self):
         tiles = []
-        for x, y in self.tiles.keys():
-            if (abs(self.x - x) > self.PADDING or
-                abs(self.y - y) > self.PADDING):
-                tiles.append(x, y)
+        for x in range(16):
+            for y in range(10):
+                if (x, y) not in self.tiles:
+                    tiles.append((x, y))
+        return tiles
 
     def move_left(self):
         self.camera.x -= 200
@@ -89,51 +100,56 @@ class Game(object):
     def move_down(self):
         self.camera.y -= 200
 
+    def draw(self):
+        if self.state == self.STARTED:
+            gl.glTranslatef(window.width / 2, window.height // 2, 0)
+            gl.glScalef(self.zoom, self.zoom, 1.0)
+            gl.glTranslatef(-window.width / 2, -window.height // 2, 0)
+            gl.glTranslatef(self.camera.x * -1, self.camera.y * -1, 0)
+            for tile in self.drawable_tiles:
+                tile.draw()
+        else:
+            missing_tiles = self.missing_tiles
+            if missing_tiles:
+                self.load_tile(*self.missing_tiles[0])
+            else:
+                self.state = self.STARTED
+
+    def load_tile(self, x, y):
+        for x, y in itertools.product(range(16), range(10)):
+            filename = 'tile-%03d-%03d.png' % (y, x)
+            mu = get_mem_usage()
+            image = load_image(filename)
+            dmem = get_mem_usage() - mu
+            sprite = self.tiles[x, y] = pyglet.sprite.Sprite(image)
+            sprite.x = TILE_SIZE * x
+            sprite.y = -TILE_SIZE * y
+            print "Loaded:", filename, dmem, get_mem_usage() - mu - dmem, get_mem_usage() / 1024 / 1024
 
 class Main(pyglet.window.Window):
 
     fps_display = None
-    zoom = 1.0
 
     def __init__(self):
         super(Main, self).__init__(width=1024, height=600,
                                    resizable=True,
                                    caption='Salmon Run')
         self.set_minimum_size(320, 200) # does not work on linux with compiz
-        self.set_fullscreen()
+        # self.set_fullscreen()
         self.set_mouse_visible(True)
         # self.set_icon(pyglet.image.load(
         #         os.path.join(pyglet.resource.location('Dodo.png').path, 'Dodo.png')))
         self.background_batch = pyglet.graphics.Batch()
         self.game = Game()
 
-        self.Thread = Thread(target=self.resource_loader)
-        self.Thread.start()
-
         self.fps_display = pyglet.clock.ClockDisplay()
         self.fps_display.label.y = self.height - 50
         self.fps_display.label.x = self.width - 170
 
-    def resource_loader(self):
-        while True:
-            time.sleep(0.01)
-            filename = 'tile-%03d-%03d.png' % (y, x)
-            image = self.cell_images[x, y] = load_image(filename)
-            sprite = self.cell_sprites[x, y] = pyglet.sprite.Sprite(image,
-                                                                    batch=self.background_batch)
-            sprite.x = TILE_SIZE * x
-            sprite.y = -TILE_SIZE * y
-            print "tick"
-
-
     def on_draw(self):
         self.clear()
         with gl_matrix():
-            gl.glTranslatef(window.width / 2, window.height // 2, 0)
-            gl.glScalef(self.zoom, self.zoom, 1.0)
-            gl.glTranslatef(-window.width / 2, -window.height // 2, 0)
-            gl.glTranslatef(self.game.camera.x * -1, self.game.camera.y * -1, 0)
-            self.background_batch.draw()
+            self.game.draw()
         if self.fps_display:
             self.fps_display.draw()
 
