@@ -116,15 +116,14 @@ class Game(object):
                 self.state = self.STARTED
 
     def load_tile(self, x, y):
-        for x, y in itertools.product(range(16), range(10)):
-            filename = 'tile-%03d-%03d.png' % (y, x)
-            mu = get_mem_usage()
-            image = load_image(filename)
-            dmem = get_mem_usage() - mu
-            sprite = self.tiles[x, y] = pyglet.sprite.Sprite(image)
-            sprite.x = TILE_SIZE * x
-            sprite.y = -TILE_SIZE * y
-            print "Loaded:", filename, dmem, get_mem_usage() - mu - dmem, get_mem_usage() / 1024 / 1024
+        filename = 'tile-%03d-%03d.png' % (y, x)
+        mu = get_mem_usage()
+        image = load_image(filename)
+        dmem = get_mem_usage() - mu
+        sprite = self.tiles[x, y] = pyglet.sprite.Sprite(image)
+        sprite.x = TILE_SIZE * x
+        sprite.y = -TILE_SIZE * y
+        print "Loaded:", filename, dmem, get_mem_usage() - mu - dmem, get_mem_usage() / 1024 / 1024
 
 class Main(pyglet.window.Window):
 
