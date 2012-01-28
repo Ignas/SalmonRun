@@ -170,16 +170,14 @@ class Game(object):
             d = d.split(' ')
             [current_x, current_y] = map(float, d[1].split(","))
             coords.append((current_x, current_y))
-            coordinates = d[4:]
+            coordinates = d[3:]
             for n, coord in enumerate(coordinates):
                 if n % 3 == 2:
                     dx, dy = map(float, coord.split(","))
                     current_x += dx
                     current_y += dy
                     coords.append((current_x, current_y))
-            print coords[-1]
             return coords
-
 
         def multiply(coords, k):
             return [(x * k, y * k)
