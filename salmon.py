@@ -112,26 +112,34 @@ class Camera(object):
             self.focus_timer = 1 # seconds
 
     def update(self, dt):
+        self.target_x = self.game.map_x
+        self.target_y = self.game.map_y
         self.x = int(self.x - (self.x - self.target_x) * 0.1)
         self.y = int(self.y - (self.y - self.target_y) * 0.1)
 
 
+class Level(object):
+
+    def __init__(self):
+        self.path = [(5000, 5000),
+                     (300, 500)]
+
 class Game(object):
 
-    TILE_PADDING = 1
+    TILE_PADDING = 2
     STARTED = object()
     LOADING = object()
-    zoom = 0.01
+    zoom = 0.2
     update_freq = 1 / 60.
 
     def __init__(self):
-        self.map_x, self.map_y = 4000, 4000
+        self.map_x, self.map_y = 0, 0
         self.camera = Camera(self)
         pyglet.clock.schedule_interval(self.camera.update, self.update_freq)
 
         self.tiles = {}
         self.state = self.LOADING
-        self.missing_tiles = []
+        self.missing_tiles = [(self.tile_x, self.tile_y)]
         for x in range(16 + 10):
             for y in range(10):
                 if x >= y and (x - y) < 16:
@@ -155,16 +163,16 @@ class Game(object):
         return tiles
 
     def move_left(self):
-        self.map_x -= 200
+        self.map_x = max(0, self.map_x - 1024)
 
     def move_right(self):
-        self.map_x += 200
+        self.map_x += 1024
 
     def move_up(self):
-        self.map_y -= 200
+        self.map_y = max(0, self.map_y - 1024)
 
     def move_down(self):
-        self.map_y += 200
+        self.map_y += 1024
 
     def draw(self):
         if self.missing_tiles:
@@ -173,8 +181,7 @@ class Game(object):
             self.state = self.STARTED
         gl.glTranslatef(window.width / 2, window.height // 2, 0)
         gl.glScalef(self.zoom, self.zoom, 1.0)
-        gl.glTranslatef(-window.width / 2, -window.height // 2, 0)
-        gl.glTranslatef(self.camera.x * -1, self.camera.y * -1, 0)
+        gl.glTranslatef(-self.camera.x, self.camera.y, 0)
         for tile in self.drawable_tiles:
             tile.draw()
 
@@ -182,6 +189,7 @@ class Game(object):
         filename = 'tile-%03d-%03d.png' % (y, x)
         mu = get_mem_usage()
         image = load_image(filename)
+        image.anchor_x = image.anchor_y = TILE_SIZE / 2
         dmem = get_mem_usage() - mu
         sprite = self.tiles[x, y] = pyglet.sprite.Sprite(image)
         sprite.x = TILE_SIZE * x
