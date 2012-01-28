@@ -153,8 +153,6 @@ class Game(object):
         self.state = self.LOADING
         self.missing_tiles = [(x, y) for x in range(self.MAP_W)
                                      for y in range(self.MAP_H)]
-        self.missing_tiles.sort(key=lambda (x, y): math.hypot(x - self.tile_x,
-                                                              y - self.tile_y))
 
     @property
     def tile_x(self):
@@ -194,6 +192,9 @@ class Game(object):
         if self.missing_tiles:
             if (self.last_load_time is None or
                 time.time() - self.last_load_time > 0.1):
+                self.missing_tiles.sort(
+                    key=lambda (x, y): math.hypot(x - self.tile_x,
+                                                  y - self.tile_y))
                 self.load_tile(*self.missing_tiles.pop(0))
                 self.last_load_time = time.time()
         gl.glTranslatef(window.width / 2, window.height // 2, 0)
