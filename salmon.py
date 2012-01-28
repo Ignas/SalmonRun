@@ -161,23 +161,23 @@ class Game(object):
                                      for y in range(self.MAP_H)]
 
 
-        baseinas = pyglet.resource.file('nemunas.svg')
+        baseinas = pyglet.resource.file('nemunas_clean.svg')
         from lxml import etree
         tree = etree.parse(baseinas)
 
-        def d_to_coords(d, dx=0, dy=0):
+        def d_to_coords(d, px=0, py=0):
             coords = []
             d = d.split(' ')
             [current_x, current_y] = map(float, d[1].split(","))
-            current_x += dx
-            current_y += dy
+            current_x += px
+            current_y += py
             coords.append((current_x, current_y))
             coordinates = d[3:]
             for n, coord in enumerate(coordinates):
                 if n % 3 == 2:
                     dx, dy = map(float, coord.split(","))
-                    current_x += dx
-                    current_y += dy
+                    current_x = dx + px
+                    current_y = dy + py
                     coords.append((current_x, current_y))
             return coords
 
@@ -208,14 +208,26 @@ class Game(object):
 
         # When exporting png coordinates got shifted a little bit, so
         # we compensate for it
-        nemunas = offset(nemunas, -512 + 98, +512 + 1024 + 44)
+        nemunas = offset(nemunas, -512 + 95, +512 + 1024 + 42)
         self.nemunas = nemunas
 
-        s1 = tree.xpath("//*[@id='sesupe']/@d")[0]
-        sesupe = d_to_coords(s1)
-        sesupe = multiply(reversed(sesupe), 6.0, 6.0)
-        sesupe = offset(sesupe, -512 + 93, -304)
-        self.nemunas = sesupe
+        #s1 = tree.xpath("//*[@id='sesupe']/@d")[0]
+        #sesupe = d_to_coords(s1)
+        #sesupe = multiply(reversed(sesupe), 6.0, 6.0)
+        #sesupe = offset(sesupe, -512 + 93, -304)
+        #self.nemunas = sesupe
+        # 
+        #jotija_onija = tree.xpath("//*[@id='sesupe']/@d")[0]
+        #jotija_onija = d_to_coords(jotija_onija)
+        #jotija_onija = multiply(reversed(jotija_onija), 6.0, 6.0)
+        #jotija_onija = offset(jotija_onija, -512 + 93, -304)
+        #self.nemunas += jotija_onija
+        # 
+        #onija = tree.xpath("//*[@id='sesupe']/@d")[0]
+        #onija = d_to_coords(onija)
+        #onija = multiply(reversed(onija), 6.0, 6.0)
+        #onija = offset(sesupe, -512 + 93, -304)
+        #self.nemunas += onija
 
 
         # import pdb; pdb.set_trace()
