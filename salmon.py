@@ -154,23 +154,23 @@ class Game(object):
         self.missing_tiles = [(x, y) for x in range(self.MAP_W)
                                      for y in range(self.MAP_H)]
 
-        nemunas = []
+        self.nemunas = []
         current_x, current_y = 0, 0
-        nemunas.append((current_x, current_y))
+        self.nemunas.append((current_x, current_y))
         for coord in pyglet.resource.file('nemunas.txt').read().split(" "):
             dx, dy = map(float, coord.split(","))
             current_x += dx
             current_y += dy
-            nemunas.append((current_x, current_y))
+            self.nemunas.append((current_x, current_y))
 
         dot_image = load_image("dot.png")
         dot_image.anchor_x = dot_image.anchor_y = 8
         self.dots = []
-        for x, y in nemunas:
+        for x, y in self.nemunas:
             sprite = pyglet.sprite.Sprite(dot_image)
             self.dots.append(sprite)
-            sprite.x = x * 3.05 + (3 * 1024 + 188)
-            sprite.y = -y * 3.02 - (4 * 1024 + 188)
+            sprite.x = x * 3.00 + (3 * 1024 + 188)
+            sprite.y = -y * 2.97 - (4 * 1024 + 188)
 
     @property
     def tile_x(self):
