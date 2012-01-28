@@ -66,26 +66,24 @@ class Game(object):
     zoom = 1.0
 
     def __init__(self):
-        self.x, self.y = 5, 5
+        self.x, self.y = 2, 2
         self.camera = Camera()
         self.tiles = {}
         self.state = self.LOADING
+        self.missing_tiles = []
+        for x in range(16 + 10):
+            for y in range(10):
+                if x >= y and (x - y) < 16:
+                    self.missing_tiles.append((x - y, y))
+        print self.missing_tiles
 
     @property
     def drawable_tiles(self):
         tiles = []
         for x in range(self.x - self.PADDING, self.x + self.PADDING):
             for y in range(self.y - self.PADDING, self.y + self.PADDING):
-                tiles.append(self.tiles[x, y])
-        return tiles
-
-    @property
-    def missing_tiles(self):
-        tiles = []
-        for x in range(16):
-            for y in range(10):
-                if (x, y) not in self.tiles:
-                    tiles.append((x, y))
+                if (x, y) in self.tiles:
+                    tiles.append(self.tiles[x, y])
         return tiles
 
     def move_left(self):
@@ -101,19 +99,16 @@ class Game(object):
         self.camera.y -= 200
 
     def draw(self):
-        if self.state == self.STARTED:
-            gl.glTranslatef(window.width / 2, window.height // 2, 0)
-            gl.glScalef(self.zoom, self.zoom, 1.0)
-            gl.glTranslatef(-window.width / 2, -window.height // 2, 0)
-            gl.glTranslatef(self.camera.x * -1, self.camera.y * -1, 0)
-            for tile in self.drawable_tiles:
-                tile.draw()
+        if self.missing_tiles:
+            self.load_tile(*self.missing_tiles.pop(0))
         else:
-            missing_tiles = self.missing_tiles
-            if missing_tiles:
-                self.load_tile(*self.missing_tiles[0])
-            else:
-                self.state = self.STARTED
+            self.state = self.STARTED
+        gl.glTranslatef(window.width / 2, window.height // 2, 0)
+        gl.glScalef(self.zoom, self.zoom, 1.0)
+        gl.glTranslatef(-window.width / 2, -window.height // 2, 0)
+        gl.glTranslatef(self.camera.x * -1, self.camera.y * -1, 0)
+        for tile in self.drawable_tiles:
+            tile.draw()
 
     def load_tile(self, x, y):
         filename = 'tile-%03d-%03d.png' % (y, x)
@@ -169,9 +164,9 @@ class Main(pyglet.window.Window):
         if symbol == key.F:
             self.set_fullscreen(not self.fullscreen)
         if symbol in [key.PLUS, key.EQUAL]:
-            self.zoom *= 1.1
+            self.game.zoom *= 1.1
         if symbol == key.MINUS:
-            self.zoom /= 1.1
+            self.game.zoom /= 1.1
         if symbol == key.N:
             self.new_game()
 
