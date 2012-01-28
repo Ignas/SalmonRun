@@ -1,8 +1,5 @@
 #!/usr/bin/env python
-import time
-import itertools
 import logging
-from threading import Thread, Lock
 from contextlib import contextmanager
 
 import pyglet
@@ -117,14 +114,6 @@ class Camera(object):
     def update(self, dt):
         self.x = int(self.x - (self.x - self.target_x) * 0.1)
         self.y = int(self.y - (self.y - self.target_y) * 0.1)
-        if self.focus:
-            self.center_x, self.center_y = self.focus.x, self.focus.y
-            if self.focus_timer > 0:
-                self.focus_timer -= dt
-                if self.focus_timer <= 0:
-                    self.focus_on(None)
-        else:
-            self.center_x, self.bottom_third_y = self.game.map_x, self.game.map_y
 
 
 class Game(object):
@@ -132,11 +121,11 @@ class Game(object):
     TILE_PADDING = 1
     STARTED = object()
     LOADING = object()
-    zoom = 1.0
+    zoom = 0.01
     update_freq = 1 / 60.
 
     def __init__(self):
-        self.map_x, self.map_y = 300, 300
+        self.map_x, self.map_y = 4000, 4000
         self.camera = Camera(self)
         pyglet.clock.schedule_interval(self.camera.update, self.update_freq)
 
@@ -197,7 +186,7 @@ class Game(object):
         sprite = self.tiles[x, y] = pyglet.sprite.Sprite(image)
         sprite.x = TILE_SIZE * x
         sprite.y = -TILE_SIZE * y
-        print "Loaded:", filename, dmem, get_mem_usage() - mu - dmem, get_mem_usage() / 1024 / 1024
+        # print "Loaded:", filename, dmem, get_mem_usage() - mu - dmem, get_mem_usage() / 1024 / 1024
 
 
 class Main(pyglet.window.Window):
