@@ -124,6 +124,17 @@ class Camera(object):
         self.zoom = self.zoom - (self.zoom - self.target_zoom) * 0.1
 
 
+class River(object):
+
+    tributaries = {}
+    title = ""
+
+    def __init__(self, title, tributaries, parent):
+        self.title = title
+        self.tributaries = tributaries
+        self.parent = None
+
+
 class Game(object):
 
     MAP_W, MAP_H = 16, 10
@@ -150,18 +161,53 @@ class Game(object):
                                      for y in range(self.MAP_H)]
 
 
-        self.nemunas = []
-        current_x, current_y = 0, 0
-        self.nemunas.append((current_x, current_y))
-        for n, coord in enumerate(pyglet.resource.file('nemunas.txt').read().split(" ")):
-            if n % 3 == 2:
-                dx, dy = map(float, coord.split(","))
-                current_x += dx
-                current_y += dy
-                self.nemunas.append((current_x, current_y))
+        baseinas = pyglet.resource.file('nemunas.svg')
+        from lxml import etree
+        tree = etree.parse(baseinas)
 
-        self.nemunas = [(x * 6.00 + (3 * 1024 + 188), y * 6 + (4 * 1024 + 188))
-                        for x, y in reversed(self.nemunas)]
+        def d_to_coords(d):
+            coords = []
+            d = d.split(' ')
+            [current_x, current_y] = map(float, d[1].split(","))
+            coords.append((current_x, current_y))
+            coordinates = d[4:]
+            for n, coord in enumerate(coordinates):
+                if n % 3 == 2:
+                    dx, dy = map(float, coord.split(","))
+                    current_x += dx
+                    current_y += dy
+                    coords.append((current_x, current_y))
+            print coords[-1]
+            return coords
+
+
+        def multiply(coords, k):
+            return [(x * k, y * k)
+                    for (x, y) in coords]
+
+        def offset(coords, offset_x=0, offset_y=0):
+            return [(x + offset_x, y + offset_y)
+                    for (x, y) in coords]
+
+        n1 = tree.xpath("//*[@id='Nemunas1']/@d")[0]
+        n2 = tree.xpath("//*[@id='Nemunas2']/@d")[0]
+        nemunas = d_to_coords(n1) + d_to_coords(n2)
+        nemunas = multiply(reversed(nemunas), 6)
+        self.nemunas = offset(nemunas, 3 * 1024 + 188, 4 * 1024 + 188)
+        # import pdb; pdb.set_trace()
+        # return
+        # self.nemunas = []
+        # current_x, current_y = 0, 0
+        # self.nemunas.append((current_x, current_y))
+        # for n, coord in enumerate(pyglet.resource.file('nemunas.txt').read().split(" ")):
+        #     if n % 3 == 2:
+        #         dx, dy = map(float, coord.split(","))
+        #         current_x += dx
+        #         current_y += dy
+        #         self.nemunas.append((current_x, current_y))
+
+        # self.nemunas = multiply(reversed(self.nemunas), 6)
+        # self.nemunas = offset(self.nemunas, 3 * 1024 + 188, 4 * 1024 + 188)
 
         dot_image = load_image("dot.png")
         dot_image.anchor_x = dot_image.anchor_y = 8
