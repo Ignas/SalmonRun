@@ -157,11 +157,11 @@ class Game(object):
 
     @property
     def tile_x(self):
-        return self.map_x / 1024
+        return self.camera.x / 1024
 
     @property
     def tile_y(self):
-        return self.map_y / 1024
+        return self.camera.y / 1024
 
     @property
     def drawable_tiles(self):
