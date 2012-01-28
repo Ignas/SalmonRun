@@ -124,12 +124,6 @@ class Camera(object):
         self.zoom = self.zoom - (self.zoom - self.target_zoom) * 0.1
 
 
-class Level(object):
-
-    def __init__(self):
-        self.path = [(5000, 5000),
-                     (300, 500)]
-
 class Game(object):
 
     MAP_W, MAP_H = 16, 10
@@ -146,6 +140,7 @@ class Game(object):
         self.map_x, self.map_y = 1024 * 8, 1024 * 4
         self.camera = Camera(self)
         pyglet.clock.schedule_interval(self.camera.update, self.update_freq)
+        pyglet.clock.schedule_interval(self.update, self.update_freq)
 
         self.tiles = {}
         self.missing_tile = self.load_tile_sprite('no-tile.png')
@@ -163,14 +158,21 @@ class Game(object):
             current_y += dy
             self.nemunas.append((current_x, current_y))
 
-        dot_image = load_image("dot.png")
-        dot_image.anchor_x = dot_image.anchor_y = 8
+        self.nemunas = [(x * 3.00 + (3 * 1024 + 188), y * 2.97 + (4 * 1024 + 188))
+                        for x, y in reversed(self.nemunas)]
+
+        # dot_image = load_image("dot.png")
+        # dot_image.anchor_x = dot_image.anchor_y = 8
         self.dots = []
-        for x, y in self.nemunas:
-            sprite = pyglet.sprite.Sprite(dot_image)
-            self.dots.append(sprite)
-            sprite.x = x * 3.00 + (3 * 1024 + 188)
-            sprite.y = -y * 2.97 - (4 * 1024 + 188)
+        # for x, y in self.nemunas:
+        #     sprite = pyglet.sprite.Sprite(dot_image)
+        #     self.dots.append(sprite)
+        #     sprite.x = 
+        #     sprite.y = 
+
+    def update(self, dt):
+        if self.state is self.STARTED and self.nemunas:
+            self.map_x, self.map_y = self.nemunas.pop()
 
     @property
     def tile_x(self):
@@ -215,6 +217,8 @@ class Game(object):
                                                   y - self.tile_y))
                 self.load_tile(*self.missing_tiles.pop(0))
                 self.last_load_time = time.time()
+        else:
+            self.state = self.STARTED
         gl.glTranslatef(window.width / 2, window.height // 2, 0)
         gl.glScalef(self.camera.zoom, self.camera.zoom, 1.0)
         gl.glTranslatef(-self.camera.x, self.camera.y, 0)
