@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import math
 import logging
+import time
 from contextlib import contextmanager
 
 import pyglet
@@ -133,6 +134,8 @@ class Game(object):
 
     MAP_W, MAP_H = 16, 10
 
+    last_load_time = None
+
     TILE_PADDING = 2
     STARTED = object()
     LOADING = object()
@@ -145,6 +148,7 @@ class Game(object):
         pyglet.clock.schedule_interval(self.camera.update, self.update_freq)
 
         self.tiles = {}
+        self.load_time = {}
         self.state = self.LOADING
         self.missing_tiles = [(x, y) for x in range(self.MAP_W)
                                      for y in range(self.MAP_H)]
@@ -182,13 +186,16 @@ class Game(object):
 
     def draw(self):
         if self.missing_tiles:
-            self.load_tile(*self.missing_tiles.pop(0))
-        else:
-            self.state = self.STARTED
+            if (self.last_load_time is None or
+                time.time() - self.last_load_time > 0.1):
+                self.load_tile(*self.missing_tiles.pop(0))
+                self.last_load_time = time.time()
         gl.glTranslatef(window.width / 2, window.height // 2, 0)
         gl.glScalef(self.camera.zoom, self.camera.zoom, 1.0)
         gl.glTranslatef(-self.camera.x, self.camera.y, 0)
         for tile in self.drawable_tiles:
+            if tile.opacity < 255:
+                tile.opacity = min(255, int((time.time() - tile.loaded) * 255))
             tile.draw()
 
     def load_tile(self, x, y):
@@ -198,6 +205,8 @@ class Game(object):
         image.anchor_x = image.anchor_y = TILE_SIZE / 2
         dmem = get_mem_usage() - mu
         sprite = self.tiles[x, y] = pyglet.sprite.Sprite(image)
+        sprite.loaded = time.time()
+        sprite.opacity = 0
         sprite.x = TILE_SIZE * x
         sprite.y = -TILE_SIZE * y
         # print "Loaded:", filename, dmem, get_mem_usage() - mu - dmem, get_mem_usage() / 1024 / 1024
