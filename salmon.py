@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import math
 import logging
 from contextlib import contextmanager
 
@@ -126,6 +127,8 @@ class Level(object):
 
 class Game(object):
 
+    MAP_W, MAP_H = 16, 10
+
     TILE_PADDING = 2
     STARTED = object()
     LOADING = object()
@@ -139,11 +142,10 @@ class Game(object):
 
         self.tiles = {}
         self.state = self.LOADING
-        self.missing_tiles = [(self.tile_x, self.tile_y)]
-        for x in range(16 + 10):
-            for y in range(10):
-                if x >= y and (x - y) < 16:
-                    self.missing_tiles.append((x - y, y))
+        self.missing_tiles = [(x, y) for x in range(self.MAP_W)
+                                     for y in range(self.MAP_H)]
+        self.missing_tiles.sort(key=lambda (x, y): math.hypot(x - self.tile_x,
+                                                              y - self.tile_y))
 
     @property
     def tile_x(self):
