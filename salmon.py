@@ -10,7 +10,7 @@ from pyglet import gl
 DEBUG_VERSION = False
 TILE_SIZE = 1024
 
-log = logging.getLogger('dodo')
+log = logging.getLogger('salmon')
 
 if DEBUG_VERSION:
     log.setLevel(logging.DEBUG)
