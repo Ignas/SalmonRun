@@ -129,11 +129,11 @@ class Game(object):
     TILE_PADDING = 2
     STARTED = object()
     LOADING = object()
-    zoom = 0.2
+    zoom = 0.4
     update_freq = 1 / 60.
 
     def __init__(self):
-        self.map_x, self.map_y = 0, 0
+        self.map_x, self.map_y = 1024 * 8, 1024 * 4
         self.camera = Camera(self)
         pyglet.clock.schedule_interval(self.camera.update, self.update_freq)
 
