@@ -53,21 +53,93 @@ def gl_state(bits=gl.GL_ALL_ATTRIB_BITS):
     finally:
         gl.glPopAttrib()
 
+
+
 class Camera(object):
 
-    x = y = 0
+    def __init__(self, game):
+        self.game = game
+        self.x = self.game.map_x
+        self.y = self.game.map_y
+        self.target_x = self.x
+        self.target_y = self.y
+        self.focus = None
+        self.focus_timer = 0
+
+    @property
+    def center_x(self):
+        return int(self.target_x + window.width // 2)
+
+    @property
+    def center_y(self):
+        return int(self.target_y + window.height // 2)
+
+    @center_x.setter
+    def center_x(self, x):
+        self.target_x = int(x - window.width // 2)
+
+    @center_y.setter
+    def center_y(self, y):
+        self.target_y = int(y - window.height // 2)
+
+    @property
+    def bottom_third_y(self):
+        return int(self.target_y + window.height // 3)
+
+    @bottom_third_y.setter
+    def bottom_third_y(self, y):
+        self.target_y = int(y - window.height // 3)
+
+    @property
+    def x(self):
+        return self._x
+
+    @property
+    def y(self):
+        return self._y
+
+    @x.setter
+    def x(self, x):
+        self._x = max(0, x)
+
+    @y.setter
+    def y(self, y):
+        self._y = max(0, y)
+
+    def focus_on(self, obj):
+        self.focus = obj
+        self.focus_timer = 0
+
+    def remove_focus(self, obj):
+        if self.focus is obj:
+            self.focus_timer = 1 # seconds
+
+    def update(self, dt):
+        self.x = int(self.x - (self.x - self.target_x) * 0.1)
+        self.y = int(self.y - (self.y - self.target_y) * 0.1)
+        if self.focus:
+            self.center_x, self.center_y = self.focus.x, self.focus.y
+            if self.focus_timer > 0:
+                self.focus_timer -= dt
+                if self.focus_timer <= 0:
+                    self.focus_on(None)
+        else:
+            self.center_x, self.bottom_third_y = self.game.map_x, self.game.map_y
 
 
 class Game(object):
 
-    PADDING = 2
+    TILE_PADDING = 1
     STARTED = object()
     LOADING = object()
     zoom = 1.0
+    update_freq = 1 / 60.
 
     def __init__(self):
-        self.x, self.y = 2, 2
-        self.camera = Camera()
+        self.map_x, self.map_y = 300, 300
+        self.camera = Camera(self)
+        pyglet.clock.schedule_interval(self.camera.update, self.update_freq)
+
         self.tiles = {}
         self.state = self.LOADING
         self.missing_tiles = []
@@ -75,28 +147,35 @@ class Game(object):
             for y in range(10):
                 if x >= y and (x - y) < 16:
                     self.missing_tiles.append((x - y, y))
-        print self.missing_tiles
+
+    @property
+    def tile_x(self):
+        return self.map_x / 1024
+
+    @property
+    def tile_y(self):
+        return self.map_y / 1024
 
     @property
     def drawable_tiles(self):
         tiles = []
-        for x in range(self.x - self.PADDING, self.x + self.PADDING):
-            for y in range(self.y - self.PADDING, self.y + self.PADDING):
+        for x in range(self.tile_x - self.TILE_PADDING, self.tile_x + self.TILE_PADDING + 1):
+            for y in range(self.tile_y - self.TILE_PADDING, self.tile_y + self.TILE_PADDING + 1):
                 if (x, y) in self.tiles:
                     tiles.append(self.tiles[x, y])
         return tiles
 
     def move_left(self):
-        self.camera.x -= 200
+        self.map_x -= 200
 
     def move_right(self):
-        self.camera.x += 200
+        self.map_x += 200
 
     def move_up(self):
-        self.camera.y += 200
+        self.map_y -= 200
 
     def move_down(self):
-        self.camera.y -= 200
+        self.map_y += 200
 
     def draw(self):
         if self.missing_tiles:
@@ -119,6 +198,7 @@ class Game(object):
         sprite.x = TILE_SIZE * x
         sprite.y = -TILE_SIZE * y
         print "Loaded:", filename, dmem, get_mem_usage() - mu - dmem, get_mem_usage() / 1024 / 1024
+
 
 class Main(pyglet.window.Window):
 
