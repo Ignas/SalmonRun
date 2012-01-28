@@ -137,7 +137,7 @@ class River(object):
 
 class Game(object):
 
-    MAP_W, MAP_H = 16, 10
+    MAP_W, MAP_H = 16+1, 10+1
 
     last_load_time = None
 
@@ -293,7 +293,8 @@ class Game(object):
 
     def load_tile_sprite(self, filename):
         image = load_image(filename)
-        image.anchor_x = image.anchor_y = TILE_SIZE / 2
+        image.anchor_x = TILE_SIZE / 2
+        image.anchor_y = image.height - TILE_SIZE / 2
         return pyglet.sprite.Sprite(image)
 
     def load_tile(self, x, y):
