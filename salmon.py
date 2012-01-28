@@ -205,8 +205,19 @@ class Game(object):
         nemunas = d_to_coords(n1, *translate_offset(t1))
         nemunas += d_to_coords(n2, *translate_offset(t2))
         nemunas = multiply(reversed(nemunas), 6.0, 6.0)
-        nemunas = offset(nemunas, -512 + 98, +512 + 1024 + 44) # dunno why!!!
+
+        # When exporting png coordinates got shifted a little bit, so
+        # we compensate for it
+        nemunas = offset(nemunas, -512 + 98, +512 + 1024 + 44)
         self.nemunas = nemunas
+
+        s1 = tree.xpath("//*[@id='sesupe']/@d")[0]
+        sesupe = d_to_coords(s1)
+        sesupe = multiply(reversed(sesupe), 6.0, 6.0)
+        sesupe = offset(sesupe, -512 + 93, -304)
+        self.nemunas = sesupe
+
+
         # import pdb; pdb.set_trace()
         # return
         # self.nemunas = []
