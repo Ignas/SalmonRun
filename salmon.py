@@ -306,9 +306,10 @@ class Game(object):
         gl.glTranslatef(window.width / 2, window.height // 2, 0)
         gl.glScalef(self.camera.zoom, self.camera.zoom, 1.0)
         gl.glTranslatef(-self.camera.x, self.camera.y, 0)
+        OPACITY = 128 # 255 actually, but I'm testing now
         for tile in self.drawable_tiles:
-            if tile.opacity < 255:
-                tile.opacity = min(255, int((time.time() - tile.loaded) * 255))
+            if tile.opacity < OPACITY:
+                tile.opacity = min(OPACITY, int((time.time() - tile.loaded) * OPACITY))
             tile.draw()
 
         for dot in self.dots:
