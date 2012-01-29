@@ -249,17 +249,16 @@ class Game(object):
         self.levels = [sesupe,
                        jotija,
                        jotija_onija]
-        self.level = random.choice(self.levels)
-        self.path = self.level.path()
-
-        dot_image = load_image("dot.png")
-        dot_image.anchor_x = dot_image.anchor_y = 8
-        self.dots = []
-        for x, y in self.level.path():
-            sprite = pyglet.sprite.Sprite(dot_image)
-            self.dots.append(sprite)
-            sprite.x = x
-            sprite.y = -y
+        # self.level = random.choice(self.levels)
+        # self.path = self.level.path()
+        # dot_image = load_image("dot.png")
+        # dot_image.anchor_x = dot_image.anchor_y = 8
+        # self.dots = []
+        # for x, y in self.level.path():
+        #     sprite = pyglet.sprite.Sprite(dot_image)
+        #     self.dots.append(sprite)
+        #     sprite.x = x
+        #     sprite.y = -y
 
     def update(self, dt):
         if self.state == self.LOADING:
