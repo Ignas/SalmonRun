@@ -339,16 +339,16 @@ class Game(object):
             kirsna,
             dovine
             ]
-        # self.level = random.choice(self.levels)
-        # self.path = self.level.path()
-        # dot_image = load_image("dot.png")
-        # dot_image.anchor_x = dot_image.anchor_y = 8
+
+    def set_up_breadcrumbs(self):
+        dot_image = load_image("dot.png")
+        dot_image.anchor_x = dot_image.anchor_y = 8
         self.dots = []
-        # for x, y in self.level.path():
-        #     sprite = pyglet.sprite.Sprite(dot_image)
-        #     self.dots.append(sprite)
-        #     sprite.x = x
-        #     sprite.y = -y
+        for x, y in self.level.path():
+            sprite = pyglet.sprite.Sprite(dot_image)
+            self.dots.append(sprite)
+            sprite.x = x
+            sprite.y = -y
 
     flashes = []
     def flash(self, flash, t):
@@ -428,6 +428,7 @@ class Game(object):
 
         if self.state is self.LOADED:
             self.level = random.choice(self.levels)
+            # self.set_up_breadcrumbs()
             self.path = self.level.path()
             self.zoom = 3
             self.map_x, self.map_y = self.path.next()
@@ -462,17 +463,20 @@ class Game(object):
                     next_tributary = t
                     break
 
-            if next_tributary is not None:
-                self.choice_distance = pn - self.current_cell
-                self.current_choices = next_tributary.choices
-                self.choice_node = self.current_river.nodes[pn]
-
             if pn - self.current_cell == 1:
                 if self.last_direction == next_tributary.choices[0]:
-                    self.flash_text(u"Įplaukei į %s, %d, %d" % (next_tributary.title, pn,
-                                                                self.current_cell), 50, 100, t=5)
-                    self.current_cell = 0
+                    self.flash_text(u"Įplaukei į %s" % next_tributary.title, 50, 100, t=5)
+                    self.current_cell = -1
                     self.current_river = next_tributary
+                self.last_direction = ""
+                self.current_choices = []
+                self.choice_node = (0, 0)
+            elif next_tributary is not None:
+                self.choice_distance = pn - self.current_cell
+                self.choice_node = self.current_river.nodes[pn]
+                if self.choice_distance >= 1:
+                    self.current_choices = next_tributary.choices
+            else:
                 self.last_direction = ""
                 self.current_choices = []
                 self.choice_node = (0, 0)
