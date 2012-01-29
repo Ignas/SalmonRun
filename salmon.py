@@ -133,7 +133,7 @@ class River(object):
 
     parent_node = 0
 
-    def __init__(self, title, nodes, parent=None):
+    def __init__(self, title, nodes, parent=None, choices=('UP', 'DOWN')):
         self.title = title
         self.tributaries = {}
         self.parent = parent
@@ -146,7 +146,7 @@ class River(object):
             self.parent_node = self.parent.nodes.index(closest[1])
             self.parent.tributaries[self.parent_node] = self
         # XXX code that finds out which options should be shown
-        self.choices = ['UP', 'DOWN']
+        self.choices = choices
 
     def path(self, start_from=0):
         nodes = self.nodes
@@ -200,6 +200,9 @@ class Game(object):
     zoom = 0.5
     update_freq = 1 / 60.
     skip_loading = True
+    current_choices = []
+    choice_distance = 0
+    choice_node = (0, 0)
 
     def __init__(self):
         self.map_x, self.map_y = 1024 * 8, 1024 * 4
@@ -213,6 +216,24 @@ class Game(object):
 
         self.game_over = pyglet.sprite.Sprite(load_image('meskinas.png'))
         self.victory = pyglet.sprite.Sprite(load_image('meskinas.png'))
+
+        arrow = load_image('rodykle.png')
+        arrow.anchor_x = arrow.width // 2
+        arrow.anchor_y = arrow.height // 2
+        self.simple_choices = {'UP': pyglet.sprite.Sprite(arrow),
+                               'RIGHT': pyglet.sprite.Sprite(arrow),
+                               'DOWN': pyglet.sprite.Sprite(arrow),
+                               'LEFT': pyglet.sprite.Sprite(arrow)}
+
+        arrow = load_image('selected_rodykle.png')
+        arrow.anchor_x = arrow.width // 2
+        arrow.anchor_y = arrow.height // 2
+        self.selected_choices = {'UP': pyglet.sprite.Sprite(arrow),
+                                 'RIGHT': pyglet.sprite.Sprite(arrow),
+                                 'DOWN': pyglet.sprite.Sprite(arrow),
+                                 'LEFT': pyglet.sprite.Sprite(arrow)}
+
+        self.choices = dict(self.simple_choices)
 
         self.load_time = {}
         self.state = self.LOADING
@@ -270,31 +291,41 @@ class Game(object):
         nemunas = offset(nemunas, -512 + 95, +512 + 1024 + 42)
         self.nemunas = River("Nemunas", nemunas)
 
-        def load_river(title, river_id, parent):
+        def load_river(title, river_id, parent, choices=("DOWN", "UP")):
             # Refactor us please, we feel duplicated
             river = tree.xpath("//*[@id='%s']/@d" % river_id)[0]
             river = d_to_coords(river)
             river = multiply(river, 6.0, 6.0)
             river = offset(river, -512 + 95, -304)
-            return River(title, river, parent)
+            return River(title, river, parent, choices)
 
-        sesupe = load_river(u"Šešupė", "sesupe", self.nemunas)
+        sesupe = load_river(u"Šešupė", "sesupe", self.nemunas,
+                            ("DOWN", "RIGHT"))
 
         # Jotija and Onija paths are broken
-        jotija = load_river(u"Jotija", "jotija-onija", sesupe)
+        jotija = load_river(u"Jotija", "jotija-onija", sesupe,
+                           ("RIGHT", "DOWN"))
         onija = load_river(u"Onija", "jotija", jotija)
         jotija_nodes = jotija.nodes[:onija.parent_node] + onija.nodes
         onija.nodes = jotija.nodes[onija.parent_node:]
         jotija.nodes = jotija_nodes
 
-        siesartis = load_river(u"Siesartis", "siesartis", sesupe)
-        nova = load_river(u"Nova", "nova", sesupe)
-        penta = load_river(u"Penta", "penta", nova)
-        visakis = load_river(u"Višakis", "visakis", sesupe)
-        jure = load_river(u"Jūrė", "jure", visakis)
-        pilve = load_river(u"Pilvė", "pilve", sesupe)
-        kirsna = load_river(u"Kirsna", "kirsna", sesupe)
-        dovine = load_river(u"Dovinė", "dovine", sesupe)
+        siesartis = load_river(u"Siesartis", "siesartis", sesupe,
+                               ("RIGHT", "DOWN"))
+        nova = load_river(u"Nova", "nova", sesupe,
+                          ("RIGHT", "DOWN"))
+        penta = load_river(u"Penta", "penta", nova,
+                           ("RIGHT", "DOWN"))
+        visakis = load_river(u"Višakis", "visakis", sesupe,
+                             ("RIGHT", "DOWN"))
+        jure = load_river(u"Jūrė", "jure", visakis,
+                          ("DOWN", "UP"))
+        pilve = load_river(u"Pilvė", "pilve", sesupe,
+                           ("RIGHT", "DOWN"))
+        kirsna = load_river(u"Kirsna", "kirsna", sesupe,
+                            ("DOWN", "RIGHT"))
+        dovine = load_river(u"Dovinė", "dovine", sesupe,
+                            ("RIGHT", "LEFT"))
 
         self.levels = [
             sesupe,
@@ -337,6 +368,44 @@ class Game(object):
         label.height = 50
         label.width = len(text) * 40
         self.flash(label, t)
+
+    def draw_arrows(self):
+        self.update_arrows()
+        for choice in self.current_choices:
+            self.choices[choice].draw()
+
+    def update_arrows(self):
+        self.choices = {}
+        for direction in self.simple_choices.keys():
+            if direction == self.last_direction:
+                self.choices[direction] = self.selected_choices[direction]
+            else:
+                self.choices[direction] = self.simple_choices[direction]
+
+        if self.choice_node:
+            cx, cy = self.choice_node[0], -self.choice_node[1]
+        else:
+            cx, cy = 0, 0
+
+        arrow_size = 100
+
+        for choice in self.choices.values():
+            choice.scale = 0.17
+        self.choices['UP'].rotation = 0
+        self.choices['UP'].x = cx
+        self.choices['UP'].y = cy + arrow_size / 2
+
+        self.choices['RIGHT'].rotation = 90
+        self.choices['RIGHT'].x = cx + arrow_size / 2
+        self.choices['RIGHT'].y = cy
+
+        self.choices['DOWN'].rotation = 180
+        self.choices['DOWN'].x = cx
+        self.choices['DOWN'].y = cy - arrow_size / 2
+
+        self.choices['LEFT'].rotation = 270
+        self.choices['LEFT'].x = cx - arrow_size / 2
+        self.choices['LEFT'].y = cy
 
     last_move_time = None
     def update(self, dt):
@@ -389,17 +458,24 @@ class Game(object):
             next_tributary = None
             pn = 10 ** 6
             for pn, t in sorted(self.current_river.tributaries.items()):
-                if pn > self.current_cell:
+                if pn >= self.current_cell:
                     next_tributary = t
                     break
 
-            if pn - self.current_cell == 10:
-                self.flash_text("/".join(next_tributary.choices), 50, 200, 10)
-            elif pn - self.current_cell == 1:
-                self.flash_text(u"Įplaukei į %s, %d, %d" % (next_tributary.title, pn,
-                                                            self.current_cell), 50, 100, t=5)
-                self.current_cell = 0
-                self.current_river = next_tributary
+            if next_tributary is not None:
+                self.choice_distance = pn - self.current_cell
+                self.current_choices = next_tributary.choices
+                self.choice_node = self.current_river.nodes[pn]
+
+            if pn - self.current_cell == 1:
+                if self.last_direction == next_tributary.choices[0]:
+                    self.flash_text(u"Įplaukei į %s, %d, %d" % (next_tributary.title, pn,
+                                                                self.current_cell), 50, 100, t=5)
+                    self.current_cell = 0
+                    self.current_river = next_tributary
+                self.last_direction = ""
+                self.current_choices = []
+                self.choice_node = (0, 0)
 
             distance = dt * self.speed
             while True:
@@ -416,6 +492,9 @@ class Game(object):
                     else:
                         self.state = self.GAME_OVER
                         self.flash(self.game_over, 4)
+                        self.flash_text(u"Ši lašiša gimė upėje %s, o ne %s" % (self.level.title,
+                                                                               self.current_river.title),
+                                        50, window.height - 50, 4)
                     break
                 self.next_x, self.next_y = self.current_river.nodes[self.current_cell + 1]
             total = math.hypot(self.next_x - self.map_x, self.next_y - self.map_y)
@@ -426,7 +505,7 @@ class Game(object):
             if time.time() > self.restart_time:
                 self.state = self.LOADED
 
-    speed = 100.0 * 10
+    speed = 100.0
     next_pos = None
 
     @property
@@ -451,17 +530,19 @@ class Game(object):
                     tiles.append(no_tile)
         return tiles
 
+    last_direction = None
+
     def move_left(self):
-        self.map_x = max(0, self.map_x - 1024)
+        self.last_direction = "LEFT"
 
     def move_right(self):
-        self.map_x = min(1024 * (self.MAP_W - 1), self.map_x + 1024)
+        self.last_direction = "RIGHT"
 
     def move_up(self):
-        self.map_y = max(0, self.map_y - 1024)
+        self.last_direction = "UP"
 
     def move_down(self):
-        self.map_y = min(1024 * (self.MAP_H - 1), self.map_y + 1024)
+        self.last_direction = "DOWN"
 
     def draw(self):
         gl.glTranslatef(window.width / 2, window.height // 2, 0)
@@ -473,6 +554,7 @@ class Game(object):
                 tile.opacity = min(OPACITY, int((time.time() - tile.loaded) * OPACITY))
             tile.draw()
         self.salmon.draw()
+        self.draw_arrows()
 
         for dot in self.dots:
             dot.draw()
@@ -505,7 +587,7 @@ class Main(pyglet.window.Window):
                                    resizable=True,
                                    caption='Salmon Run')
         self.set_minimum_size(320, 200) # does not work on linux with compiz
-        # self.set_fullscreen()
+        self.set_fullscreen()
         self.set_mouse_visible(True)
         # self.set_icon(pyglet.image.load(
         #         os.path.join(pyglet.resource.location('Dodo.png').path, 'Dodo.png')))
