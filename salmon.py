@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+from lxml import etree
+import random
 import math
 import logging
 import time
@@ -126,13 +129,29 @@ class Camera(object):
 
 class River(object):
 
-    tributaries = {}
-    title = ""
+    parent_node = 0
 
-    def __init__(self, title, tributaries, parent):
+    def __init__(self, title, nodes, parent=None):
         self.title = title
-        self.tributaries = tributaries
-        self.parent = None
+        self.tributaries = {}
+        self.parent = parent
+        self.nodes = nodes
+
+        rx, ry = self.nodes[0]
+        if self.parent is not None:
+            closest = min([(math.hypot(rx - x, ry - y), (x, y))
+                           for x, y in self.parent.nodes])
+            self.parent_node = self.parent.nodes.index(closest[1])
+            self.parent.tributaries[self.parent_node] = self
+        # XXX code that finds out which options should be shown
+        self.choices = ['UP', 'DOWN']
+
+    def path(self, start_from=0):
+        for node in reversed(self.nodes[:start_from]):
+            yield node
+        if self.parent:
+            for node in self.parent.path(self.parent_node):
+                yield node
 
 
 class Game(object):
@@ -142,8 +161,9 @@ class Game(object):
     last_load_time = None
 
     TILE_PADDING = 2
-    STARTED = object()
     LOADING = object()
+    BACKTRACKING = object()
+    STARTED = object()
     zoom = 0.5
     update_freq = 1 / 60.
 
@@ -162,7 +182,6 @@ class Game(object):
 
 
         baseinas = pyglet.resource.file('nemunas_clean.svg')
-        from lxml import etree
         tree = etree.parse(baseinas)
 
         def d_to_coords(d, px=0, py=0):
@@ -209,54 +228,34 @@ class Game(object):
         # When exporting png coordinates got shifted a little bit, so
         # we compensate for it
         nemunas = offset(nemunas, -512 + 95, +512 + 1024 + 42)
-        self.nemunas = nemunas
+        self.nemunas = River("Nemunas", nemunas)
 
-        # Refactor us please, we feel duplicated
-        s1 = tree.xpath("//*[@id='sesupe']/@d")[0]
-        sesupe = d_to_coords(s1)
-        sesupe = multiply(reversed(sesupe), 6.0, 6.0)
-        sesupe = offset(sesupe, -512 + 95, -304)
-        self.nemunas += sesupe
+        def load_river(title, river_id, parent):
+            # Refactor us please, we feel duplicated
+            river = tree.xpath("//*[@id='%s']/@d" % river_id)[0]
+            river = d_to_coords(river)
+            river = multiply(reversed(river), 6.0, 6.0)
+            river = offset(river, -512 + 95, -304)
+            return River(title, river, parent)
 
-        jotija_onija = tree.xpath("//*[@id='jotija-onija']/@d")[0]
-        jotija_onija = d_to_coords(jotija_onija)
-        jotija_onija = multiply(reversed(jotija_onija), 6.0, 6.0)
-        jotija_onija = offset(jotija_onija, -512 + 95, -304)
-        self.nemunas += jotija_onija
+        sesupe = load_river("Šešupė", "sesupe", self.nemunas)
+        jotija_onija = load_river("Jotija-Onija", "jotija-onija", sesupe)
+        jotija = load_river("Jotija", "jotija", jotija_onija)
 
-        jotija = tree.xpath("//*[@id='jotija']/@d")[0]
-        jotija = d_to_coords(jotija)
-        jotija = multiply(reversed(jotija), 6.0, 6.0)
-        jotija = offset(jotija, -512 + 95, -304)
-        self.nemunas += jotija
-
-        # import pdb; pdb.set_trace()
-        # return
-        # self.nemunas = []
-        # current_x, current_y = 0, 0
-        # self.nemunas.append((current_x, current_y))
-        # for n, coord in enumerate(pyglet.resource.file('nemunas.txt').read().split(" ")):
-        #     if n % 3 == 2:
-        #         dx, dy = map(float, coord.split(","))
-        #         current_x += dx
-        #         current_y += dy
-        #         self.nemunas.append((current_x, current_y))
-
-        # self.nemunas = multiply(reversed(self.nemunas), 6)
-        # self.nemunas = offset(self.nemunas, 3 * 1024 + 188, 4 * 1024 + 188)
-
-        dot_image = load_image("dot.png")
-        dot_image.anchor_x = dot_image.anchor_y = 8
+        self.levels = [sesupe,
+                       jotija,
+                       jotija_onija]
         self.dots = []
-        for x, y in self.nemunas:
-            sprite = pyglet.sprite.Sprite(dot_image)
-            self.dots.append(sprite)
-            sprite.x = x
-            sprite.y = -y
 
     def update(self, dt):
-        if self.state is self.STARTED and self.nemunas:
-            self.map_x, self.map_y = self.nemunas.pop()
+        if self.state is self.BACKTRACKING:
+            try:
+                node = self.path.next()
+                self.map_x, self.map_y = node
+            except StopIteration:
+                pass
+        elif self.state is self.STARTED:
+            node = self.path.next()
 
     @property
     def tile_x(self):
@@ -302,7 +301,9 @@ class Game(object):
                 self.load_tile(*self.missing_tiles.pop(0))
                 self.last_load_time = time.time()
         else:
-            self.state = self.STARTED
+            self.level = random.choice(self.levels)
+            self.path = self.level.path()
+            self.state = self.BACKTRACKING
         gl.glTranslatef(window.width / 2, window.height // 2, 0)
         gl.glScalef(self.camera.zoom, self.camera.zoom, 1.0)
         gl.glTranslatef(-self.camera.x, self.camera.y, 0)
