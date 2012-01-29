@@ -159,6 +159,30 @@ class River(object):
                 yield node
 
 
+class Salmon(object):
+
+    def __init__(self, game):
+        image = load_image("lasisa.png")
+        image.anchor_x = image.width / 2
+        image.anchor_y = image.height / 2
+        self.game = game
+        self.sprite = pyglet.sprite.Sprite(image)
+        self.sprite.scale = 0.05
+        self.x = self.game.map_x
+        self.y = self.game.map_y
+        self.last_x, self.last_y = self.x, self.y
+
+    def update(self, dt):
+        if (self.x, self.y) != (self.game.map_x, self.game.map_y):
+            self.last_x, self.last_y = (self.x, self.y)
+            self.x, self.y = self.game.map_x, self.game.map_y
+
+    def draw(self):
+        self.sprite.x = self.game.map_x
+        self.sprite.y = -self.game.map_y
+        self.sprite.draw()
+
+
 class Game(object):
 
     MAP_W, MAP_H = 16+1, 10+1
@@ -176,6 +200,7 @@ class Game(object):
 
     def __init__(self):
         self.map_x, self.map_y = 1024 * 8, 1024 * 4
+        self.salmon = Salmon(self)
         self.camera = Camera(self)
         pyglet.clock.schedule_interval(self.camera.update, self.update_freq)
         pyglet.clock.schedule_interval(self.update, self.update_freq)
@@ -301,6 +326,7 @@ class Game(object):
     last_move_time = None
     def update(self, dt):
         self.update_flashes(dt)
+        self.salmon.update(dt)
         if (self.state == self.LOADING or
             self.skip_loading):
             if self.missing_tiles:
@@ -380,9 +406,13 @@ class Game(object):
             if tile.opacity < OPACITY:
                 tile.opacity = min(OPACITY, int((time.time() - tile.loaded) * OPACITY))
             tile.draw()
+        self.salmon.draw()
 
         for dot in self.dots:
             dot.draw()
+
+    def draw_ui(self):
+        self.draw_flashes()
 
     def load_tile_sprite(self, filename):
         image = load_image(filename)
@@ -425,7 +455,7 @@ class Main(pyglet.window.Window):
         with gl_matrix():
             self.game.draw()
         with gl_matrix():
-            self.game.draw_flashes()
+            self.game.draw_ui()
         if self.fps_display:
             self.fps_display.draw()
 
