@@ -474,8 +474,7 @@ class Game(object):
             elif next_tributary is not None:
                 self.choice_distance = pn - self.current_cell
                 self.choice_node = self.current_river.nodes[pn]
-                if self.choice_distance >= 1:
-                    self.current_choices = next_tributary.choices
+                self.current_choices = next_tributary.choices
             else:
                 self.last_direction = ""
                 self.current_choices = []
