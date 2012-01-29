@@ -180,6 +180,7 @@ class Salmon(object):
     def draw(self):
         self.sprite.x = self.game.map_x
         self.sprite.y = -self.game.map_y
+        self.sprite.rotation = math.degrees(math.atan2(self.game.map_y - self.game.next_y, self.game.map_x - self.game.next_x)) - 90
         self.sprite.draw()
 
 
@@ -371,7 +372,7 @@ class Game(object):
             # node = self.path.next()
             self.state = self.LOADED
 
-    speed = 60.0
+    speed = 100.0
     next_pos = None
 
     @property
