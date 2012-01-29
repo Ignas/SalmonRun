@@ -27,6 +27,8 @@ pyglet.resource.reindex()
 
 
 window = None
+font = dict(font_name='Andale Mono',
+            font_size=20)
 
 
 def load_image(filename, **kw):
@@ -170,6 +172,7 @@ class Game(object):
     STARTED = object()
     zoom = 0.5
     update_freq = 1 / 60.
+    skip_loading = True
 
     def __init__(self):
         self.map_x, self.map_y = 1024 * 8, 1024 * 4
@@ -183,6 +186,7 @@ class Game(object):
         self.state = self.LOADING
         self.missing_tiles = [(x, y) for x in range(self.MAP_W)
                                      for y in range(self.MAP_H)]
+        self.total_tiles = len(self.missing_tiles)
 
 
         baseinas = pyglet.resource.file('nemunas_clean.svg')
@@ -242,26 +246,63 @@ class Game(object):
             river = offset(river, -512 + 95, -304)
             return River(title, river, parent)
 
-        sesupe = load_river("Šešupė", "sesupe", self.nemunas)
-        jotija_onija = load_river("Jotija-Onija", "jotija-onija", sesupe)
-        jotija = load_river("Jotija", "jotija", jotija_onija)
+        sesupe = load_river(u"Šešupė", "sesupe", self.nemunas)
+        jotija_onija = load_river(u"Jotija-Onija", "jotija-onija", sesupe)
+        jotija = load_river(u"Jotija", "jotija", jotija_onija)
+        siesartis = load_river(u"Siesartis", "siesartis", sesupe)
+        nova = load_river(u"Nova", "nova", sesupe)
+        penta = load_river(u"Penta", "penta", nova)
+        visakis = load_river(u"Višakis", "visakis", sesupe)
+        jure = load_river(u"Jūrė", "jure", visakis)
+        pilve = load_river(u"Pilvė", "pilve", sesupe)
+        kirsna = load_river(u"Kirsna", "kirsna", sesupe)
+        dovine = load_river(u"Dovinė", "dovine", sesupe)
 
         self.levels = [sesupe,
                        jotija,
-                       jotija_onija]
+                       jotija_onija,
+                       siesartis,
+                       nova,
+                       penta,
+                       jure,
+                       pilve,
+                       kirsna,
+                       dovine]
         # self.level = random.choice(self.levels)
         # self.path = self.level.path()
         # dot_image = load_image("dot.png")
         # dot_image.anchor_x = dot_image.anchor_y = 8
-        # self.dots = []
+        self.dots = []
         # for x, y in self.level.path():
         #     sprite = pyglet.sprite.Sprite(dot_image)
         #     self.dots.append(sprite)
         #     sprite.x = x
         #     sprite.y = -y
 
+    flashes = []
+    def flash(self, flash, t):
+        self.flashes.append((t, flash))
+
+    def draw_flashes(self):
+        for t, flash in self.flashes:
+            flash.draw()
+
+    def update_flashes(self, dt):
+        self.flashes = [(t - dt, flash)
+                        for (t, flash) in self.flashes
+                        if t - dt > 0]
+
+    def flash_text(self, text, x, y, t):
+        label = pyglet.text.Label(text, x=x, y=y, **font)
+        label.height = 20
+        label.width = len(text) * 20
+        self.flash(label, t)
+
+    last_move_time = None
     def update(self, dt):
-        if self.state == self.LOADING:
+        self.update_flashes(dt)
+        if (self.state == self.LOADING or
+            self.skip_loading):
             if self.missing_tiles:
                 if (self.last_load_time is None or
                     time.time() - self.last_load_time > 0.1):
@@ -270,22 +311,31 @@ class Game(object):
                                                       y - self.tile_y))
                     self.load_tile(*self.missing_tiles.pop(0))
                     self.last_load_time = time.time()
-            else:
+
+            if (self.state == self.LOADING and
+                (self.skip_loading or (not self.missing_tiles))):
                 self.state = self.LOADED
 
         if self.state is self.LOADED:
             self.level = random.choice(self.levels)
             self.path = self.level.path()
+            self.zoom = 3
+            self.map_x, self.map_y = self.path.next()
             self.state = self.BACKTRACKING
+            self.flash_text(u"Lašiša gimė upėje kuri vadinasi %s" % self.level.title, 50, 50, t=5)
+            self.last_move_time = time.time() + 5
 
         if self.state is self.BACKTRACKING:
             try:
-                node = self.path.next()
-                self.map_x, self.map_y = node
+                if (time.time() - self.last_move_time > 0.2):
+                    node = self.path.next()
+                    self.map_x, self.map_y = node
+                    self.last_move_time = time.time()
             except StopIteration:
-                pass
+                self.state = self.STARTED
         elif self.state is self.STARTED:
-            node = self.path.next()
+            # node = self.path.next()
+            self.state = self.LOADED
 
     @property
     def tile_x(self):
@@ -325,7 +375,7 @@ class Game(object):
         gl.glTranslatef(window.width / 2, window.height // 2, 0)
         gl.glScalef(self.camera.zoom, self.camera.zoom, 1.0)
         gl.glTranslatef(-self.camera.x, self.camera.y, 0)
-        OPACITY = 128 # 255 actually, but I'm testing now
+        OPACITY = 255 # 255 actually, but I'm testing now
         for tile in self.drawable_tiles:
             if tile.opacity < OPACITY:
                 tile.opacity = min(OPACITY, int((time.time() - tile.loaded) * OPACITY))
@@ -374,6 +424,8 @@ class Main(pyglet.window.Window):
         self.clear()
         with gl_matrix():
             self.game.draw()
+        with gl_matrix():
+            self.game.draw_flashes()
         if self.fps_display:
             self.fps_display.draw()
 
