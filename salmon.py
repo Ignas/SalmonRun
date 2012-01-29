@@ -319,8 +319,8 @@ class Game(object):
 
     def flash_text(self, text, x, y, t):
         label = pyglet.text.Label(text, x=x, y=y, **font)
-        label.height = 20
-        label.width = len(text) * 20
+        label.height = 50
+        label.width = len(text) * 40
         self.flash(label, t)
 
     last_move_time = None
@@ -347,21 +347,32 @@ class Game(object):
             self.path = self.level.path()
             self.zoom = 3
             self.map_x, self.map_y = self.path.next()
+            self.next_x, self.next_y = self.path.next()
             self.state = self.BACKTRACKING
-            self.flash_text(u"Lašiša gimė upėje kuri vadinasi %s" % self.level.title, 50, 50, t=5)
+            self.flash_text(u"Lašiša gimė upėje kuri vadinasi %s" % self.level.title, 50, 100, t=5)
             self.last_move_time = time.time() + 5
 
         if self.state is self.BACKTRACKING:
             try:
-                if (time.time() - self.last_move_time > 0.2):
-                    node = self.path.next()
-                    self.map_x, self.map_y = node
-                    self.last_move_time = time.time()
+                distance = dt * self.speed
+                while True:
+                    distance -= math.hypot(self.next_x - self.map_x, self.next_y - self.map_y)
+                    if distance < 0:
+                        break
+                    self.map_x, self.map_y = self.next_x, self.next_y
+                    self.next_x, self.next_y = self.path.next()
+
+                total = math.hypot(self.next_x - self.map_x, self.next_y - self.map_y)
+                pct = (total + distance) / total
+                self.map_x, self.map_y = (self.map_x + (self.next_x - self.map_x) * pct), (self.map_y + (self.next_y - self.map_y) * pct)
             except StopIteration:
                 self.state = self.STARTED
         elif self.state is self.STARTED:
             # node = self.path.next()
             self.state = self.LOADED
+
+    speed = 60.0
+    next_pos = None
 
     @property
     def tile_x(self):
