@@ -192,6 +192,8 @@ class Game(object):
 
     TILE_PADDING = 2
     LOADING = object()
+    VICTORY = object()
+    GAME_OVER = object()
     LOADED = object()
     BACKTRACKING = object()
     STARTED = object()
@@ -208,6 +210,10 @@ class Game(object):
 
         self.tiles = {}
         self.missing_tile = self.load_tile_sprite('no-tile.png')
+
+        self.game_over = pyglet.sprite.Sprite(load_image('meskinas.png'))
+        self.victory = pyglet.sprite.Sprite(load_image('meskinas.png'))
+
         self.load_time = {}
         self.state = self.LOADING
         self.missing_tiles = [(x, y) for x in range(self.MAP_W)
@@ -273,8 +279,14 @@ class Game(object):
             return River(title, river, parent)
 
         sesupe = load_river(u"Šešupė", "sesupe", self.nemunas)
-        jotija_onija = load_river(u"Jotija-Onija", "jotija-onija", sesupe)
-        jotija = load_river(u"Jotija", "jotija", jotija_onija)
+
+        # Jotija and Onija paths are broken
+        jotija = load_river(u"Jotija", "jotija-onija", sesupe)
+        onija = load_river(u"Onija", "jotija", jotija)
+        jotija_nodes = jotija.nodes[:onija.parent_node] + onija.nodes
+        onija.nodes = jotija.nodes[onija.parent_node:]
+        jotija.nodes = jotija_nodes
+
         siesartis = load_river(u"Siesartis", "siesartis", sesupe)
         nova = load_river(u"Nova", "nova", sesupe)
         penta = load_river(u"Penta", "penta", nova)
@@ -284,16 +296,18 @@ class Game(object):
         kirsna = load_river(u"Kirsna", "kirsna", sesupe)
         dovine = load_river(u"Dovinė", "dovine", sesupe)
 
-        self.levels = [sesupe,
-                       jotija,
-                       jotija_onija,
-                       siesartis,
-                       nova,
-                       penta,
-                       jure,
-                       pilve,
-                       kirsna,
-                       dovine]
+        self.levels = [
+            sesupe,
+            jotija,
+            onija,
+            siesartis,
+            nova,
+            penta,
+            jure,
+            pilve,
+            kirsna,
+            dovine
+            ]
         # self.level = random.choice(self.levels)
         # self.path = self.level.path()
         # dot_image = load_image("dot.png")
@@ -355,24 +369,64 @@ class Game(object):
 
         if self.state is self.BACKTRACKING:
             try:
-                distance = dt * self.speed
+                distance = dt * self.speed * 2
                 while True:
                     distance -= math.hypot(self.next_x - self.map_x, self.next_y - self.map_y)
                     if distance < 0:
                         break
                     self.map_x, self.map_y = self.next_x, self.next_y
                     self.next_x, self.next_y = self.path.next()
-
                 total = math.hypot(self.next_x - self.map_x, self.next_y - self.map_y)
                 pct = (total + distance) / total
                 self.map_x, self.map_y = (self.map_x + (self.next_x - self.map_x) * pct), (self.map_y + (self.next_y - self.map_y) * pct)
             except StopIteration:
                 self.state = self.STARTED
+                self.current_river = self.nemunas
+                self.current_cell = 0
+                self.map_x, self.map_y = self.nemunas.nodes[self.current_cell]
+                self.nex_x, self.next_y = self.nemunas.nodes[self.current_cell + 1]
         elif self.state is self.STARTED:
-            # node = self.path.next()
-            self.state = self.LOADED
+            next_tributary = None
+            pn = 10 ** 6
+            for pn, t in sorted(self.current_river.tributaries.items()):
+                if pn > self.current_cell:
+                    next_tributary = t
+                    break
 
-    speed = 100.0
+            if pn - self.current_cell == 10:
+                self.flash_text("/".join(next_tributary.choices), 50, 200, 10)
+            elif pn - self.current_cell == 1:
+                self.flash_text(u"Įplaukei į %s, %d, %d" % (next_tributary.title, pn,
+                                                            self.current_cell), 50, 100, t=5)
+                self.current_cell = 0
+                self.current_river = next_tributary
+
+            distance = dt * self.speed
+            while True:
+                distance -= math.hypot(self.next_x - self.map_x, self.next_y - self.map_y)
+                if distance < 0:
+                    break
+                self.map_x, self.map_y = self.next_x, self.next_y
+                self.current_cell += 1
+                if (self.current_cell + 1) == len(self.current_river.nodes):
+                    self.restart_time = time.time() + 5
+                    if self.current_river is self.level:
+                        self.state = self.VICTORY
+                        self.flash(self.victory, 4)
+                    else:
+                        self.state = self.GAME_OVER
+                        self.flash(self.game_over, 4)
+                    break
+                self.next_x, self.next_y = self.current_river.nodes[self.current_cell + 1]
+            total = math.hypot(self.next_x - self.map_x, self.next_y - self.map_y)
+            if total != 0:
+                pct = (total + distance) / total
+                self.map_x, self.map_y = (self.map_x + (self.next_x - self.map_x) * pct), (self.map_y + (self.next_y - self.map_y) * pct)
+        elif self.state in [self.VICTORY, self.GAME_OVER]:
+            if time.time() > self.restart_time:
+                self.state = self.LOADED
+
+    speed = 100.0 * 10
     next_pos = None
 
     @property
