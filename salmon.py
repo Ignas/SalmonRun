@@ -224,7 +224,7 @@ class Game(object):
         t2 = tree.xpath("//*[@id='Nemunas2']/../@transform")[0]
         nemunas = d_to_coords(n1, *translate_offset(t1))
         nemunas += d_to_coords(n2, *translate_offset(t2))
-        nemunas = multiply(reversed(nemunas), 6.0, 6.0)
+        nemunas = multiply(nemunas, 6.0, 6.0)
 
         # When exporting png coordinates got shifted a little bit, so
         # we compensate for it
@@ -235,7 +235,7 @@ class Game(object):
             # Refactor us please, we feel duplicated
             river = tree.xpath("//*[@id='%s']/@d" % river_id)[0]
             river = d_to_coords(river)
-            river = multiply(reversed(river), 6.0, 6.0)
+            river = multiply(river, 6.0, 6.0)
             river = offset(river, -512 + 95, -304)
             return River(title, river, parent)
 
