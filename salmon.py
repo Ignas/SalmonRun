@@ -162,6 +162,7 @@ class Game(object):
 
     TILE_PADDING = 2
     LOADING = object()
+    LOADED = object()
     BACKTRACKING = object()
     STARTED = object()
     zoom = 0.5
@@ -248,6 +249,23 @@ class Game(object):
         self.dots = []
 
     def update(self, dt):
+        if self.state == self.LOADING:
+            if self.missing_tiles:
+                if (self.last_load_time is None or
+                    time.time() - self.last_load_time > 0.1):
+                    self.missing_tiles.sort(
+                        key=lambda (x, y): math.hypot(x - self.tile_x,
+                                                      y - self.tile_y))
+                    self.load_tile(*self.missing_tiles.pop(0))
+                    self.last_load_time = time.time()
+            else:
+                self.state = self.LOADED
+
+        if self.state is self.LOADED:
+            self.level = random.choice(self.levels)
+            self.path = self.level.path()
+            self.state = self.BACKTRACKING
+
         if self.state is self.BACKTRACKING:
             try:
                 node = self.path.next()
@@ -292,18 +310,6 @@ class Game(object):
         self.map_y = min(1024 * (self.MAP_H - 1), self.map_y + 1024)
 
     def draw(self):
-        if self.missing_tiles:
-            if (self.last_load_time is None or
-                time.time() - self.last_load_time > 0.1):
-                self.missing_tiles.sort(
-                    key=lambda (x, y): math.hypot(x - self.tile_x,
-                                                  y - self.tile_y))
-                self.load_tile(*self.missing_tiles.pop(0))
-                self.last_load_time = time.time()
-        else:
-            self.level = random.choice(self.levels)
-            self.path = self.level.path()
-            self.state = self.BACKTRACKING
         gl.glTranslatef(window.width / 2, window.height // 2, 0)
         gl.glScalef(self.camera.zoom, self.camera.zoom, 1.0)
         gl.glTranslatef(-self.camera.x, self.camera.y, 0)
