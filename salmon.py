@@ -203,6 +203,7 @@ class Game(object):
     current_choices = []
     choice_distance = 0
     choice_node = (0, 0)
+    dots = []
 
     def __init__(self):
         self.map_x, self.map_y = 1024 * 8, 1024 * 4
@@ -215,7 +216,11 @@ class Game(object):
         self.missing_tile = self.load_tile_sprite('no-tile.png')
 
         self.game_over = pyglet.sprite.Sprite(load_image('meskinas.png'))
-        self.victory = pyglet.sprite.Sprite(load_image('meskinas.png'))
+        self.victory = pyglet.sprite.Sprite(load_image('lasisa.png'))
+        self.victory.scale = 2
+        self.victory.rotation = 90
+        self.victory.x = 450
+        self.victory.y = 300
 
         arrow = load_image('rodykle.png')
         arrow.anchor_x = arrow.width // 2
@@ -280,10 +285,10 @@ class Game(object):
 
         n1 = tree.xpath("//*[@id='Nemunas1']/@d")[0]
         t1 = tree.xpath("//*[@id='Nemunas1']/../@transform")[0]
-        n2 = tree.xpath("//*[@id='Nemunas2']/@d")[0]
-        t2 = tree.xpath("//*[@id='Nemunas2']/../@transform")[0]
         nemunas = d_to_coords(n1, *translate_offset(t1))
-        nemunas += d_to_coords(n2, *translate_offset(t2))
+        # n2 = tree.xpath("//*[@id='Nemunas2']/@d")[0]
+        #t2 = tree.xpath("//*[@id='Nemunas2']/../@transform")[0]
+        # nemunas += d_to_coords(n2, *translate_offset(t2))
         nemunas = multiply(nemunas, 6.0, 6.0)
 
         # When exporting png coordinates got shifted a little bit, so
@@ -435,6 +440,7 @@ class Game(object):
             self.next_x, self.next_y = self.path.next()
             self.state = self.BACKTRACKING
             self.flash_text(u"Lašiša gimė upėje kuri vadinasi %s" % self.level.title, 50, 100, t=5)
+            self.salmon.sprite.scale = 0.02
             self.last_move_time = time.time() + 5
 
         if self.state is self.BACKTRACKING:
@@ -453,6 +459,7 @@ class Game(object):
                 self.state = self.STARTED
                 self.current_river = self.nemunas
                 self.current_cell = 0
+                self.salmon.sprite.scale = 0.08
                 self.map_x, self.map_y = self.nemunas.nodes[self.current_cell]
                 self.nex_x, self.next_y = self.nemunas.nodes[self.current_cell + 1]
         elif self.state is self.STARTED:
@@ -463,6 +470,7 @@ class Game(object):
                     next_tributary = t
                     break
 
+            distance = dt * self.speed
             if pn - self.current_cell == 1:
                 if self.last_direction == next_tributary.choices[0]:
                     self.flash_text(u"Įplaukei į %s" % next_tributary.title, 50, 100, t=5)
@@ -476,11 +484,11 @@ class Game(object):
                 self.choice_node = self.current_river.nodes[pn]
                 self.current_choices = next_tributary.choices
             else:
+                distance *= 5
                 self.last_direction = ""
                 self.current_choices = []
                 self.choice_node = (0, 0)
 
-            distance = dt * self.speed
             while True:
                 distance -= math.hypot(self.next_x - self.map_x, self.next_y - self.map_y)
                 if distance < 0:
@@ -492,6 +500,8 @@ class Game(object):
                     if self.current_river is self.level:
                         self.state = self.VICTORY
                         self.flash(self.victory, 4)
+                        self.flash_text(u"Ši lašiša sulaukė daug lašišiukų!",
+                                        50, window.height - 50, 4)
                     else:
                         self.state = self.GAME_OVER
                         self.flash(self.game_over, 4)
@@ -626,6 +636,8 @@ class Main(pyglet.window.Window):
 
         if symbol == key.F:
             self.set_fullscreen(not self.fullscreen)
+        if symbol == key.R:
+            self.game.state = self.game.LOADED
         if symbol in [key.PLUS, key.EQUAL]:
             self.game.zoom *= 1.5
         if symbol == key.MINUS:
