@@ -147,7 +147,10 @@ class River(object):
         self.choices = ['UP', 'DOWN']
 
     def path(self, start_from=0):
-        for node in reversed(self.nodes[:start_from]):
+        nodes = self.nodes
+        if start_from:
+            nodes = self.nodes[:start_from]
+        for node in reversed(nodes):
             yield node
         if self.parent:
             for node in self.parent.path(self.parent_node):
@@ -246,7 +249,17 @@ class Game(object):
         self.levels = [sesupe,
                        jotija,
                        jotija_onija]
+        self.level = random.choice(self.levels)
+        self.path = self.level.path()
+
+        dot_image = load_image("dot.png")
+        dot_image.anchor_x = dot_image.anchor_y = 8
         self.dots = []
+        for x, y in self.level.path():
+            sprite = pyglet.sprite.Sprite(dot_image)
+            self.dots.append(sprite)
+            sprite.x = x
+            sprite.y = -y
 
     def update(self, dt):
         if self.state == self.LOADING:
